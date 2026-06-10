@@ -1,0 +1,4 @@
+node_modules/
+.chronicle/
+.DS_Store
+Thumbs.db

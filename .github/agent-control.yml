@@ -1,0 +1,55 @@
+# Agent Control Specification (ACS) manifest — Build 2026 Lab
+# Declares what the repo's coding agent is allowed to do.
+# Validated on every PR by .github/workflows/acs-gate.yml
+version: "1.0"
+
+agent:
+  name: repo-coding-agent
+  description: Copilot coding agent scoped for the ACS Pipeline Lab
+
+capabilities:
+  read:
+    - "lab/sample-app/**"
+    - "docs/**"
+  write:
+    - "lab/sample-app/**"        # may edit the sample app only
+  deny:
+    - "infra/**"                  # never touches infrastructure
+    - ".github/workflows/**"      # never touches CI definitions
+    - ".devcontainer/**"          # never touches the lab environment
+
+approvals:
+  required_for:
+    - dependency_changes          # any package.json change escalates
+    - secret_access               # always escalates to a human
+
+data_boundaries:
+  egress: none                    # no external data transfer
+
+# ── Build 2026: Sandboxes ─────────────────────────────────────
+# Every agent action executes inside an isolated sandbox.
+# Failures and exploits cannot escape the action boundary.
+sandbox:
+  mode: per-action                # one sandbox per tool invocation
+  network: deny                   # no outbound network from the sandbox
+  filesystem:
+    writable: ["lab/sample-app/**", "/tmp/**"]
+    readonly: ["lab/**"]
+  timeout_seconds: 120
+  on_violation: kill-and-report   # terminate + log to audit sink
+
+# ── Build 2026: Chronicle Memory ──────────────────────────────
+# Durable, governed memory for agent sessions. What the agent
+# learned persists across runs — under org-controlled retention.
+memory:
+  provider: chronicle
+  store: .chronicle/              # local store for the lab (prod: Cosmos DB / HorizonDB)
+  scopes:
+    session: { retention: 7d }    # task context, cleared weekly
+    repo:    { retention: 90d }   # build commands, conventions
+    user:    { retention: 30d, pii: redact }
+  right_to_forget: true           # user-initiated purge supported
+  audit: true                     # every read/write logged
+
+audit:
+  sink: openclaw                  # execution log destination

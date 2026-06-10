@@ -1,0 +1,55 @@
+name: ACS gate
+
+on: pull_request
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Manifest exists and parses
+        run: |
+          test -f .github/agent-control.yml
+          python3 -c "import yaml; yaml.safe_load(open('.github/agent-control.yml'))"
+          echo "✅ ACS manifest is valid YAML"
+
+      - name: Agent stayed in policy (denied paths)
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          echo "Changed files:"; echo "$CHANGED"
+          if echo "$CHANGED" | grep -E '^(infra/|\.github/workflows/|\.devcontainer/)'; then
+            echo "::error::Agent modified paths denied by the ACS manifest"
+            exit 1
+          fi
+          echo "✅ All changes within declared capabilities"
+
+      - name: Sandbox policy declared
+        run: |
+          python3 - <<'EOF'
+          import yaml, sys
+          m = yaml.safe_load(open('.github/agent-control.yml'))
+          sb = m.get('sandbox', {})
+          assert sb.get('mode') == 'per-action', "sandbox.mode must be per-action"
+          assert sb.get('network') == 'deny', "sandbox.network must be deny"
+          print("✅ Sandbox policy: per-action isolation, network denied")
+          EOF
+
+      - name: Chronicle Memory governance declared
+        run: |
+          python3 - <<'EOF'
+          import yaml
+          m = yaml.safe_load(open('.github/agent-control.yml'))
+          mem = m.get('memory', {})
+          assert mem.get('provider') == 'chronicle', "memory.provider must be chronicle"
+          assert mem.get('right_to_forget') is True, "right_to_forget must be enabled"
+          assert mem.get('audit') is True, "memory audit must be enabled"
+          print("✅ Chronicle Memory: retention scopes + right-to-forget + audit")
+          EOF

@@ -1,0 +1,38 @@
+{
+  "name": "ACS Pipeline Lab — Build 2026",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/python:1": { "version": "3.12" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "GitHub.vscode-github-actions",
+        "redhat.vscode-yaml",
+        "bierner.markdown-mermaid"
+      ],
+      "settings": {
+        "files.autoSave": "afterDelay",
+        "workbench.startupEditor": "readme"
+      }
+    },
+    "codespaces": {
+      "openFiles": [
+        "lab/README.md"
+      ]
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": { "label": "Lab sample app", "onAutoForward": "notify" }
+  },
+  "hostRequirements": {
+    "cpus": 2,
+    "memory": "4gb",
+    "storage": "16gb"
+  }
+}

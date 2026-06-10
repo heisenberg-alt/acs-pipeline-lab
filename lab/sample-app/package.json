@@ -1,0 +1,11 @@
+{
+  "name": "acs-lab-sample-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tiny contact-form API used as the agent's playground in the ACS Pipeline Lab",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test.js"
+  }
+}
